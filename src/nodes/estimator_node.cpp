@@ -21,11 +21,41 @@ void EstimatorNode::ackermann_callback(const ackermann_msgs::msg::AckermannDrive
 	this->cur_ackermann = *msg;
 	this->ackermann_received = true;
 
-	// TODO: check slip
+	// check if wheel speeds are set
+	if(!this->are_all_wheel_speeds_set()) {
+		// can't do anything if we don't have all the wheel speeds
+		return;
+	}
 
-	// TODO: calculate twist
+	// check wheel slip
+	this->get_cur_expected_wheel_speeds(); // calculate the expected wheel speeds
+	this->get_cur_wheel_speeds_ratio(); // get the ratio of the expected and measured wheel speeds
 
-	// TODO: publish twist
+	// check if any wheel is has a speed ratio below the threshold
+	#pragma omp parallel for collapse(2)
+	for(int i = 0; i < 2; i++) {
+		for(int j = 0; j < 2; j++) {
+			if(this->wheel_speeds[i][j].ratio < SLIP_THRESHOLD) {
+				// can't use this data because of wheel slip: it would be unreliable
+				// TODO: use a model to predict the twist on slipping conditions
+				return;
+			}
+		}
+	}
+
+	// calculate twist
+	double phi = atan(WHEEL_BASE * tan(this->cur_ackermann.steering_angle) / (WHEEL_BASE + TRACK / 2));
+	double v_x = this->cur_ackermann.speed * cos(phi);
+	double v_y = this->cur_ackermann.speed * sin(phi);
+	double omega_z = this->cur_ackermann.speed / WHEEL_BASE * tan(this->cur_ackermann.steering_angle);
+
+	// publish twist
+	geometry_msgs::msg::Twist twist;
+	twist.linear.x = v_x;
+	twist.linear.y = v_y;
+	twist.angular.z = omega_z;
+
+	publisher_->publish(twist);
 }
 
 void EstimatorNode::left_front_wheel_callback(const std_msgs::msg::Float64::SharedPtr msg) {
