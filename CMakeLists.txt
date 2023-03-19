@@ -11,6 +11,7 @@ find_package(ament_cmake REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(ackermann_msgs REQUIRED)
@@ -18,7 +19,7 @@ find_package(ackermann_msgs REQUIRED)
 include_directories(include)
 
 add_executable(estimator_node src/nodes/estimator_node.cpp)
-ament_target_dependencies(estimator_node rclcpp nav_msgs ackermann_msgs)
+ament_target_dependencies(estimator_node rclcpp nav_msgs std_msgs ackermann_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
